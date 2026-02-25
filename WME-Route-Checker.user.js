@@ -6,7 +6,7 @@
 // @include             https://www.waze.com/editor*
 // @include             https://beta.waze.com/*
 // @exclude             https://www.waze.com/*user/*editor/*
-// @version             2.02
+// @version             2.03
 // @grant               GM_xmlhttpRequest
 // @connect             waze.com
 // @downloadURL https://update.greasyfork.org/scripts/3202/WME%20Route%20Checker.user.js
@@ -14,7 +14,7 @@
 // ==/UserScript==
 
 // globals
-var wmerc_version = "2.02";
+var wmerc_version = "2.03";
 
 var AVOID_TOLLS = 1;
 var AVOID_FREEWAYS = 2;
@@ -52,6 +52,8 @@ function addRouteCheckerTab(tabPane) {
   routeOptions.id = "routeOptions";
   routeOptions.style.borderTop = "solid 2px #E9E9E9";
   routeOptions.style.borderBottom = "solid 2px #E9E9E9";
+  routeOptions.style.margin = "0 0 3px 5px";
+  routeOptions.style.padding = "0 0 5px";
   tabPane.appendChild(routeOptions);
 
   var lang = I18n.translations[I18n.locale];
@@ -66,23 +68,22 @@ function addRouteCheckerTab(tabPane) {
 
     routeOptions.innerHTML = '<p><b><a href="'+url+'" title="Opens in new tab" target="LiveMap" style="color:#8309e1">Show routes in LiveMap</a> &raquo;</b></p>';
   } else {
-    routeOptions.innerHTML = `<p><b><a href="#" id="goroutes" title="WME Route Checker v${wmerc_version}" style="color:#8309e1">`
-                    + 'Show routes between these 2 segments</a></b><br>'
-                    + '<b>'+lang.restrictions.editing.driving.dropdowns.vehicle_type+':</b>'
-                    + ' <span style="white-space: nowrap;"><input type="radio" name="_vehicleType" id="_vehicleType_private" value="0" checked> '
-                    + lang.restrictions.vehicle_types.PRIVATE + '</span>'
-                    + ' <span style="white-space: nowrap;"><input type="radio" name="_vehicleType" id="_vehicleType_taxi" value="1"> '
-                    + lang.restrictions.vehicle_types.TAXI + '</span>'
-                    + ' <span style="white-space: nowrap;"><input type="radio" name="_vehicleType" id="_vehicleType_bike" value="1"> '
-                    + lang.restrictions.vehicle_types.MOTORCYCLE + '</span>'
+    routeOptions.innerHTML = `<b><a href="#" id="goroutes" title="WME Route Checker v${wmerc_version}">`
+                    + '<wz-button style="margin-top: 5px; margin-bottom: 5px;">Show routes between these 2 segments</wz-button></a></b><br>'
+                    + '<span class="label-text"><b>'+lang.restrictions.editing.driving.dropdowns.vehicle_type+'</b></span><br>'
+                    + ' <wz-radio-button style="white-space: nowrap;" name="_vehicleType" id="_vehicleType_private" value="0" checked><div class="layer-selector-container">'
+                    + lang.restrictions.vehicle_types.PRIVATE + '</div></wz-radio-button>'
+                    + ' <wz-radio-button style="white-space: nowrap;" name="_vehicleType" id="_vehicleType_taxi" value="1"><div class="layer-selector-container">'
+                    + lang.restrictions.vehicle_types.TAXI + '</div></wz-radio-button>'
+                    + ' <wz-radio-button style="white-space: nowrap;" name="_vehicleType" id="_vehicleType_bike" value="1"><div class="layer-selector-container">'
+                    + lang.restrictions.vehicle_types.MOTORCYCLE + '</div></wz-radio-button>'
                     + '<br>'
-                    + '<b>Avoid:</b>'
-                    + ' <span style="white-space: nowrap;"><input type="checkbox" id="_avoidTolls" /> ' + lang.edit.segment.fields.toll_road + '</span>'
-                    + ' <span style="white-space: nowrap;"><input type="checkbox" id="_avoidFreeways" /> ' + lang.segment.road_types[3] + '</span>'
-                    + ' <span style="white-space: nowrap;"><input type="checkbox" id="_avoidDirt" /> ' + lang.edit.segment.fields.unpaved + '</span>'
-                    + '<br>'
-                    + '<b>Allow:</b>'
-                    + ' <input type="checkbox" id="_allowUTurns" /> U-Turns</p>';
+                    + '<span class="label-text"><b>Avoid</b></span>'
+                    + ' <wz-checkbox class="wz-checkbox" style="white-space: nowrap;" id="_avoidTolls"><div class="layer-selector-container">' + lang.edit.segment.fields.toll_road + '</div></wz-checkbox>'
+                    + ' <wz-checkbox class="wz-checkbox" style="white-space: nowrap;" id="_avoidFreeways"><div class="layer-selector-container">' + lang.segment.road_types[3] + '</div></wz-checkbox>'
+                    + ' <wz-checkbox class="wz-checkbox" style="white-space: nowrap;" id="_avoidDirt"><div class="layer-selector-container">' + lang.edit.segment.fields.unpaved + '</div></wz-checkbox>'
+                    + '<span class="label-text"><b>Allow</b></span>'
+                    + ' <wz-checkbox class="wz-checkbox" style="white-space: nowrap;" id="_allowUTurns"><div class="layer-selector-container">U-Turns</div></wz-checkbox>';
 
      getId('_avoidTolls').checked              = route_options & AVOID_TOLLS;
      getId('_avoidFreeways').checked           = route_options & AVOID_FREEWAYS;
@@ -233,9 +234,10 @@ function getLivemap() {
 }
 
 function getRoutingManager() {
-  if (W.model.topCountry.attributes.env == "NA") { // Canada, Puerto Rico & US
+    let regionCode = wmeSDK.Settings.getRegionCode();
+  if (regionCode === "usa") { // Canada, Puerto Rico & US
     return 'https://routing-livemap-am.waze.com/RoutingManager/routingRequest';
-  } else if (W.model.topCountry.attributes.env == "IL") { // Israel
+  } else if (regionCode === "il") { // Israel
     return 'https://routing-livemap-il.waze.com/RoutingManager/routingRequest';
   } else { // ROW
     return 'https://routing-livemap-row.waze.com/RoutingManager/routingRequest'; // ROW
@@ -405,7 +407,8 @@ function showInstructions(instructions, nav_json, r) {
   currentItem = document.createElement('a');
   currentItem.className = 'step';
   currentItem.style = "text-align: left";
-  currentItem.innerHTML = `<p style="margin: 0px 3px 0px 0px; font-size: 2vw; vertical-align: text-top; float: left;" class="${getTurnArrowIcon('BEGIN')}"></p> <p style="margin:0; font-size: 0.8vw">Depart from</p> ${streetName}`;
+  currentItem.innerHTML = `<p style="margin: 0px 3px 0px 0px; font-size: 1.75vw; vertical-align: text-top; float: left;" class="${getTurnArrowIcon('BEGIN')}"></p> <p style="margin:0; font-size: 0.8vw">Depart from</p> ${streetName}`;
+  currentItem.addEventListener("click", () => {wmeSDK.Map.setMapCenter({lonLat: {lat: parseFloat(coordinates.y.toFixed(5)), lon: parseFloat(coordinates.x.toFixed(5))}})})
   instructions.appendChild(currentItem);
 
   var segments = [];
@@ -609,7 +612,7 @@ function showInstructions(instructions, nav_json, r) {
     turnInstruction = turnInstruction.replace(/arrive/, 'Arrive at');
     let turnInstructionHTML = `<p style="margin: 0; font-size: 0.8vw;">${turnInstruction}</p>`
     if (opcode != 'none') {
-      currentItem.innerHTML = `${laneInfo} <p style="margin: 0px 3px 0px 0px; font-size: 2vw; vertical-align: text-top; float: left;" class="${turnArrowIcon}"></p> ${turnInstructionHTML} ${streetName}`;
+      currentItem.innerHTML = `${laneInfo} <p style="margin: 0px 3px 0px 0px; font-size: 1.75vw; vertical-align: text-top; float: left;" class="${turnArrowIcon}"></p> ${turnInstructionHTML} ${streetName}`;
     }
     else {
       currentItem.innerHTML = laneInfo;
@@ -927,7 +930,7 @@ function initialiseRouteChecker() {
   var style = document.createElement('style');
   style.innerHTML = "#routeTest {padding: 0 4px 0 0; overflow-y: auto;}\n"
                   + "#routeTest p.route {margin: 0; padding: 4px 8px; border-bottom: silver solid 3px; background: #eee}\n"
-                  + "#routeTest a.step {display: block; margin: 0; padding: 3px 0px; text-decoration: none; color:black;border-bottom: silver solid 1px;}\n"
+                  + "#routeTest a.step {display: block; margin: 0; padding: 3px 0px 0px 3px; text-decoration: none; color:black;border-bottom: silver solid 1px;}\n"
                   + "#routeTest a.step:hover {background: #ffd;}\n"
                   + "#routeTest a.step:active {background: #dfd;}\n"
                   + "#routeTest a.select {color: #00f; text-align: right}\n"
